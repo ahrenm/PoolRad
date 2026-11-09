@@ -1,0 +1,8 @@
+{
+  "library": "toml++",
+  "version": "3.4.0",
+  "upstream": "https://github.com/marzer/tomlplusplus/blob/v3.4.0/toml.hpp",
+  "sha256": "ef35d799b3b2cf10fd6a4e952d498560b7ef85468b314960d0bbe25cf4794202",
+  "license": "MIT; see LICENSE and header",
+  "note": "SHA256 describes the included amalgamated header; its MIT notice is retained."
+}

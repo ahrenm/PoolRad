@@ -1,0 +1,8 @@
+execute_process(
+    COMMAND "@POOLRAD_POWERSHELL@" -NoProfile -ExecutionPolicy Bypass
+        -File "@CMAKE_CURRENT_SOURCE_DIR@/scripts/new-qol-shortcut.ps1"
+        -Directory "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}"
+    RESULT_VARIABLE shortcut_result)
+if(NOT shortcut_result EQUAL 0)
+    message(FATAL_ERROR "Could not create the Pool of Radiance QOL shortcut")
+endif()
