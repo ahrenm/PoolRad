@@ -55,35 +55,59 @@ START.EXE/GAME.OVR profiles and the PDF before fixed-offset extraction. It copie
 
 ## Build
 
-The current release target is **Windows x64**. The validated release toolchain is
-MinGW GCC 16.1 with SDL3 headers/runtime 3.5.0. Other platforms and a fully linked
-MSVC application still need validation.
+The current release target is **Windows x64**. The release toolchain is MinGW
+GCC 16.1. CMake now fetches and builds **SDL3 3.4.20** from its official source
+archive, authenticated with a committed SHA256 checksum. Full Release builds,
+installation and selected runtime checks also pass with MSVC 19.51. Other
+platforms and clean-machine MSVC runtime redistribution still need validation.
 
-Requirements: **CMake 3.25+**, a **C++20 compiler**, and a compiler-matched **SDL3
-shared development SDK**. The toml++ 3.4.0 header and its license are vendored.
-No PDF library or OCR dependency is required; image extraction uses Windows WIC.
+Requirements: **CMake 3.25+**, a toolchain with **C and C++20 compilers**, and a
+build tool such as Ninja or MinGW Make. The first configuration needs internet
+access; later builds reuse the source under the build directory's `_deps`.
+The toml++ 3.4.0 header and its license are vendored. No prebuilt SDL SDK, PDF
+library or OCR dependency is needed; Journal image extraction uses Windows WIC.
 
-From the repository root, with SDL installed as a CMake package:
+From the repository root, with the chosen toolchain/build tool on PATH:
 
 ```powershell
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="C:/SDK/SDL3"
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release --parallel
+ctest --test-dir build -C Release --output-on-failure
 cmake --install build --config Release --prefix "$PWD/dist/PoolRad"
 ```
 
-For a MinGW SDL SDK containing `include`, `lib` and `bin` but no CMake package:
+For MinGW, select its generator explicitly if another generator is the default:
 
 ```powershell
-cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DPOOLRAD_SDL3_ROOT="C:/SDK/SDL3"
+cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 cmake --install build --prefix "$PWD/dist/PoolRad"
 ```
 
-Put the chosen compiler and build tool on PATH. Use a new build directory when
-switching compilers. SDL's [CMake guide](https://wiki.libsdl.org/SDL3/README-cmake)
-explains how to build/install its SDK and select the shared-library package.
-Release is the default for single-configuration generators; GNU/Clang releases
-use the validated `-O2 -DNDEBUG` defaults. Warnings are treated as errors.
+SDL is built as a shared library using the same toolchain/configuration as the
+application. Its static library, test library, tests, examples and standalone
+installation are disabled. PoolRad installs the resulting runtime and the fetched
+release's own license notice. The pin is in `cmake/SDL3.cmake`; changing a version
+requires updating both its archive URL and SHA256 and retesting the package.
+
+Use a new build directory when switching compilers or dependency modes. Release
+is the default for single-configuration generators; GNU/Clang releases use the
+validated `-O2 -DNDEBUG` defaults. PoolRad's warnings are treated as errors.
+
+### Optional external SDL SDK
+
+To opt out of the pinned build, use an installed shared-library CMake package:
+
+```powershell
+cmake -S . -B build-external -DPOOLRAD_FETCH_SDL3=OFF -DCMAKE_PREFIX_PATH="C:/SDK/SDL3"
+```
+
+A compiler-matched Windows SDK with `include`, `lib` and `bin` but no CMake
+package can instead use `-DPOOLRAD_FETCH_SDL3=OFF -DPOOLRAD_SDL3_ROOT="C:/SDK/SDL3"`.
+That path deliberately uses the supplied SDK rather than the pinned version.
+SDL's [CMake guide](https://wiki.libsdl.org/SDL3/README-cmake) describes its package
+layout. Offline source overrides follow CMake's standard FetchContent options;
+a fresh default build needs access to the pinned GitHub archive.
 
 The install step stages the executable, SDL/compiler runtime DLLs, notices and
 this README. On Windows it also creates **Pool of Radiance QOL**, a shortcut
@@ -94,6 +118,8 @@ CMake builds the current application and its four runtime libraries. Historical
 phase drivers, proprietary corpus fixtures and workspace research tools are not
 part of this curated source tree or its default build. See the validation backlog
 for the remaining work to publish a portable regression suite.
+The included `startup_help` CTest needs no game assets and checks executable/DLL
+startup; it is not a gameplay regression suite.
 The [export validation record](docs/BuildValidation.md) lists the checks actually run.
 
 ## First launch and setup
@@ -230,7 +256,7 @@ command output can be captured by scripts; setup diagnostics use pr_setup.log.
 - `cmake/`, `scripts/`: dependency discovery, installation and metadata generation.
 - `docs/OpenDevWork.md`: parked gaps, validation and non-QoL development work.
 - `docs/OpenQOLWork.md`: all five currently open QoL proposals.
-- `third_party/`: toml++ header/license and SDL notice; obtain the SDL SDK separately.
+- `third_party/`: toml++ header/license and fallback SDL notice; SDL source is fetched at configure time.
 
 Read [AGENTS.md](AGENTS.md) before changing runtime behaviour. Preserve staged
 commit/rollback, actual-present acknowledgement barriers, source authentication

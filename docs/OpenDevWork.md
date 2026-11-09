@@ -100,18 +100,20 @@ Do not reopen those whole features without a new failing case. For example,
   depend on private DOS fixtures, source snapshots, generated strings and
   investigation artifacts. They are not copied into this repository. Curate
   asset-independent tests and an explicit local-asset test interface before
-  advertising a public full-suite command. The current clean-tree validation
-  establishes compilation, metadata consistency and installed startup only.
+  advertising a public full-suite command. The included asset-free startup_help
+  CTest checks executable/DLL startup; it does not cover gameplay.
 - [ ] **Validate additional toolchains/platforms.** The release application is
-  validated with Windows x64/MinGW. MSVC runtime units compile, but a fully linked
-  application with a matching SDL SDK and its deployment should be exercised.
+  validated with Windows x64/MinGW. The pinned-SDL source build now also passes
+  a full MSVC Release application build, install and selected setup/startup checks.
+  A complete MSVC gameplay run and clean-machine runtime deployment remain open.
   Other hosts need setup/input/storage/audio validation and a deliberate Journal
   extraction approach; Windows WIC and GOG registry discovery are Windows-only.
 - [ ] **Verify dependency/release combinations.** Establish supported SDL SDK
   versions and compiler/runtime combinations, including fresh-machine installs,
   paths with spaces/Unicode, runtime DLL redistribution and source-only rebuilds.
-  The existing snapshot was tested with SDL headers/runtime 3.5.0; arbitrary
-  SDL/compiler combinations are not certified by the CMake package lookup.
+  The default checksum-pinned SDL 3.4.20 source build is tested with MinGW and
+  MSVC on Windows x64. The earlier external SDK baseline was 3.5.0; arbitrary
+  SDL/compiler combinations are not certified by the opt-out package lookup.
 - [ ] **Choose the project-wide source license.** No project LICENSE has been
   selected for this export. Preserve the existing toml++ and SDL notices.
 

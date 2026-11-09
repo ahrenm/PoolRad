@@ -78,11 +78,14 @@ There is no approved Phase 5; the latter files are the open work lists.
 ## Build and verification
 
 Configure/build using README.md. Do not hardcode a developer drive, username,
-workspace SDK, research file or stale object path. Obtain a compiler-matched SDL3
-shared SDK externally; toml++ is vendored. Keep strict compiler warnings enabled.
+workspace SDK, research file or stale object path. CMake fetches/builds pinned
+SDL3 3.4.20 by default; keep both URL and SHA256 fixed and validated. External
+SDKs require POOLRAD_FETCH_SDL3=OFF; toml++ is vendored. Keep strict compiler
+warnings enabled.
 Use fresh build directories when changing compilers or public layouts.
 
-There is no advertised public full regression suite yet: the earlier corpus
+The asset-free startup_help CTest checks executable/DLL startup. There is no
+advertised public full regression suite yet: the earlier corpus
 suites require private/proprietary fixtures. Check metadata consistency, compile
 all affected producers/consumers and run meaningful startup/runtime checks with
 explicit local assets. When adding tests, keep portable logic separate from

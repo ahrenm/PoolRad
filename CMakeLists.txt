@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(PoolRad VERSION 0.1.0 LANGUAGES CXX)
+project(PoolRad VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -58,10 +58,14 @@ foreach(target gbengine_core gbengine_tools gbengine_modes gbengine_application 
     poolrad_warnings(${target})
 endforeach()
 
+# This asset-independent check also verifies that the newly built SDL DLL loads.
+enable_testing()
+add_test(NAME startup_help COMMAND poolrad --help)
+
 install(TARGETS poolrad RUNTIME DESTINATION .)
 install(FILES README.md DESTINATION .)
 install(FILES third_party/tomlplusplus/LICENSE DESTINATION licenses RENAME tomlplusplus-LICENSE)
-install(FILES third_party/SDL3-LICENSE.txt DESTINATION licenses)
+install(FILES "${POOLRAD_SDL3_LICENSE}" DESTINATION licenses RENAME SDL3-LICENSE.txt)
 if(WIN32)
     add_custom_command(TARGET poolrad POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:SDL3::SDL3-shared> $<TARGET_FILE_DIR:poolrad>)
