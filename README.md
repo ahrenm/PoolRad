@@ -57,15 +57,17 @@ START.EXE/GAME.OVR profiles and the PDF before fixed-offset extraction. It copie
 
 The current release target is **Windows x64**. The release toolchain is MinGW
 GCC 16.1. CMake now fetches and builds **SDL3 3.4.20** from its official source
-archive, authenticated with a committed SHA256 checksum. Full Release builds,
+archive, authenticated with a committed SHA256 checksum. SDL3_image 3.4.8 is
+pinned the same way and linked statically for JPEG decoding. Full Release builds,
 installation and selected runtime checks also pass with MSVC 19.51. Other
 platforms and clean-machine MSVC runtime redistribution still need validation.
 
 Requirements: **CMake 3.25+**, a toolchain with **C and C++20 compilers**, and a
 build tool such as Ninja or MinGW Make. The first configuration needs internet
 access; later builds reuse the source under the build directory's `_deps`.
-The toml++ 3.4.0 header and its license are vendored. No prebuilt SDL SDK, PDF
-library or OCR dependency is needed; Journal image extraction uses Windows WIC.
+The toml++ 3.4.0 header and its license are vendored. Journal extraction uses
+SDL3_image's bundled stb_image JPEG decoder on Windows and Linux. The default
+build needs no prebuilt SDL SDK, PDF library or OCR dependency.
 
 From the repository root, with the chosen toolchain/build tool on PATH:
 
@@ -86,9 +88,9 @@ cmake --install build --prefix "$PWD/dist/PoolRad"
 
 SDL is built as a shared library using the same toolchain/configuration as the
 application. Its static library, test library, tests, examples and standalone
-installation are disabled. PoolRad installs the resulting runtime and the fetched
-release's own license notice. The pin is in `cmake/SDL3.cmake`; changing a version
-requires updating both its archive URL and SHA256 and retesting the package.
+installation are disabled. PoolRad includes the dependency notices in the install.
+The pins are in `cmake/SDL3.cmake` and `cmake/SDL3Image.cmake`. To update a version,
+update its archive URL and SHA256 and retest the package.
 
 Use a new build directory when switching compilers or dependency modes. Release
 is the default for single-configuration generators; GNU/Clang releases use the
@@ -96,18 +98,19 @@ validated `-O2 -DNDEBUG` defaults. PoolRad's warnings are treated as errors.
 
 ### Optional external SDL SDK
 
-To opt out of the pinned build, use an installed shared-library CMake package:
+To opt out of the pinned SDL3 build, use an installed SDL3 3.4 or newer
+shared-library CMake package. CMake still builds the pinned SDL3_image source.
 
 ```powershell
 cmake -S . -B build-external -DPOOLRAD_FETCH_SDL3=OFF -DCMAKE_PREFIX_PATH="C:/SDK/SDL3"
 ```
 
-A compiler-matched Windows SDK with `include`, `lib` and `bin` but no CMake
+A compiler-matched Windows SDL3 SDK with `include`, `lib` and `bin` but no CMake
 package can instead use `-DPOOLRAD_FETCH_SDL3=OFF -DPOOLRAD_SDL3_ROOT="C:/SDK/SDL3"`.
 That path deliberately uses the supplied SDK rather than the pinned version.
 SDL's [CMake guide](https://wiki.libsdl.org/SDL3/README-cmake) describes its package
 layout. Offline source overrides follow CMake's standard FetchContent options;
-a fresh default build needs access to the pinned GitHub archive.
+a fresh default build needs access to the pinned GitHub archives.
 
 The install step stages the executable, SDL/compiler runtime DLLs, notices and
 this README. On Windows it also creates **Pool of Radiance QOL**, a shortcut
@@ -132,6 +135,15 @@ Setup checks the 32-bit Windows GOG registry entry
 `HKLM\SOFTWARE\WOW6432Node\GOG.com\Games\1432640961`, value `path`,
 and appends POOLRAD. You can edit the detected path or paste another supported
 folder path, including spaces, quoted Explorer paths and Unicode characters.
+
+On Linux, first-run setup checks for `GOG/POOLRAD` beside the executable and
+then in the working directory. Run from the checkout root to discover a local
+`GOG/` copy there. For a copy in another location, pass the DOS resource folder
+directly, or enter it at the setup prompt.
+
+```sh
+./build/poolrad --setup-from "/path/to/POOLRAD"
+```
 
 ```text
 PoolRad/

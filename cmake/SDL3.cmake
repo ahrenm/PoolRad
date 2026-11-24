@@ -44,11 +44,23 @@ elseif(POOLRAD_SDL3_ROOT)
         find_library(poolrad_sdl_import NAMES SDL3 PATHS "${POOLRAD_SDL3_ROOT}/lib" NO_DEFAULT_PATH REQUIRED)
     endif()
     find_file(poolrad_sdl_runtime SDL3.dll PATHS "${POOLRAD_SDL3_ROOT}/bin" "${POOLRAD_SDL3_ROOT}/lib/${sdl_arch}" "${POOLRAD_SDL3_ROOT}/lib" NO_DEFAULT_PATH REQUIRED)
+    file(STRINGS "${poolrad_sdl_include}/SDL3/SDL_version.h" sdl_version_defines
+        REGEX "^#define SDL_(MAJOR|MINOR|MICRO)_VERSION[ \t]+[0-9]+")
+    foreach(part MAJOR MINOR MICRO)
+        if(NOT sdl_version_defines MATCHES "SDL_${part}_VERSION[ \t]+([0-9]+)")
+            message(FATAL_ERROR "Cannot determine the SDL3 SDK version from SDL_version.h")
+        endif()
+        set(sdl_version_${part} "${CMAKE_MATCH_1}")
+    endforeach()
     add_library(SDL3::SDL3-shared SHARED IMPORTED)
     set_target_properties(SDL3::SDL3-shared PROPERTIES
         IMPORTED_IMPLIB "${poolrad_sdl_import}"
         IMPORTED_LOCATION "${poolrad_sdl_runtime}"
+        SDL_FULL_VERSION "${sdl_version_MAJOR}.${sdl_version_MINOR}.${sdl_version_MICRO}"
         INTERFACE_INCLUDE_DIRECTORIES "${poolrad_sdl_include}")
+    add_library(SDL3::SDL3 ALIAS SDL3::SDL3-shared)
+    add_library(SDL3::Headers INTERFACE IMPORTED)
+    set_target_properties(SDL3::Headers PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${poolrad_sdl_include}")
 else()
-    find_package(SDL3 3.2 REQUIRED CONFIG COMPONENTS SDL3-shared)
+    find_package(SDL3 3.4 REQUIRED CONFIG COMPONENTS SDL3-shared Headers)
 endif()
