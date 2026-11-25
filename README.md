@@ -7,7 +7,7 @@ exploration and tactical combat, with native host services behind platform inter
 It runs the recovered game logic directly; it does not run the DOS executable in
 an emulator.
 
-**Status: 0.1 beta preparation.** A human-led campaign playthrough has reached the
+**Current release: 1.01.** A human-led campaign playthrough has reached the
 ending and returned to Phlan. Some conditional rules and original-runtime
 comparisons remain open; this is not a claim of complete DOS parity.
 See [development gaps](docs/OpenDevWork.md) and [open QoL work](docs/OpenQOLWork.md).

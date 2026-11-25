@@ -1,6 +1,6 @@
 # Open development work
 
-This is the current non-QoL backlog for the exported 0.1 source tree. The accepted
+This is the current non-QoL backlog for the 1.01 source tree. The accepted
 human-led campaign playthrough is complete; that does not establish every branch,
 combat combination or original-runtime comparison. The historical plan ended at
 P4.10. No separate Phase 5 has been approved.

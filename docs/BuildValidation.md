@@ -1,5 +1,30 @@
 # Validation of this source export
 
+## Release 1.01: shared Journal JPEG decoding
+
+The Linux setup/shared-decoder change was tested on Windows before release:
+
+- Fresh Windows x64 Release builds and application links pass with MinGW GCC
+  16.1 and MSVC 19.51, retaining strict warnings for all 150 production C++ units.
+- SDL3_image 3.4.8 is checksum-pinned and built statically with its stb JPEG
+  backend. Both builds retain SDL3 3.4.20; no image runtime DLL is added.
+- Startup CTest, installation, Windows GOG registry discovery, setup with spaces
+  and Unicode, and nonfatal missing-PDF startup pass.
+- All 144 extracted Journal PNGs are byte-identical across the two compilers.
+  Page dimensions and catalog metadata match the previous output. Four sampled
+  pages differ from WIC by at most 3/255 per channel; exact WIC pixel equivalence
+  is not claimed. Existing WIC-generated caches work without rewriting.
+- The selected 1,786-check Journal suite and SDL Fit, Zoom/pan, category navigation,
+  QoL on/off and return-to-exploration checks pass. An existing GNU save resumes
+  without being modified. Foreign-compiler save interchange remains unsupported.
+
+The Windows download uses the MinGW Release build for existing GNU save
+compatibility. Its clean package includes runtime DLLs, dependency notices,
+README and documentation, without game assets, extracted content or test saves.
+These are selected Windows checks, not another full campaign replay, Linux
+runtime certification or a hardware-renderer comparison. MSVC runtime deployment
+on a clean machine remains open. Earlier validation sections below are historical.
+
 ## Pinned SDL3 source build
 
 The default CMake path now fetches the official SDL3 3.4.20 source archive and

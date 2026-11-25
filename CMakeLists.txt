@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(PoolRad VERSION 0.1.0 LANGUAGES C CXX)
+project(PoolRad VERSION 1.01 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -66,6 +66,7 @@ add_test(NAME startup_help COMMAND poolrad --help)
 
 install(TARGETS poolrad RUNTIME DESTINATION .)
 install(FILES README.md DESTINATION .)
+install(DIRECTORY docs/ DESTINATION docs FILES_MATCHING PATTERN "*.md")
 install(FILES third_party/tomlplusplus/LICENSE DESTINATION licenses RENAME tomlplusplus-LICENSE)
 install(FILES "${POOLRAD_SDL3_LICENSE}" DESTINATION licenses RENAME SDL3-LICENSE.txt)
 install(FILES "${POOLRAD_SDL3_IMAGE_LICENSE}" DESTINATION licenses RENAME SDL3_image-LICENSE.txt)

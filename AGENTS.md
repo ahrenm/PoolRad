@@ -79,7 +79,9 @@ There is no approved Phase 5; the latter files are the open work lists.
 
 Configure/build using README.md. Do not hardcode a developer drive, username,
 workspace SDK, research file or stale object path. CMake fetches/builds pinned
-SDL3 3.4.20 by default; keep both URL and SHA256 fixed and validated. External
+SDL3 3.4.20 and static SDL3_image 3.4.8 by default; keep their URLs and SHA256
+checks fixed and validated. The shared Journal JPEG decoder uses stb_image;
+preserve its notice and the nonfatal optional-PDF behaviour. External
 SDKs require POOLRAD_FETCH_SDL3=OFF; toml++ is vendored. Keep strict compiler
 warnings enabled.
 Use fresh build directories when changing compilers or public layouts.
