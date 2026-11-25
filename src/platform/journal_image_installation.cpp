@@ -1,29 +1,18 @@
 #include "gbengine/platform/journal_image_installation.hpp"
 #include "gbengine/qol/journal.hpp"
+#include <SDL3_image/SDL_image.h>
 #include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <map>
+#include <memory>
 #include <sstream>
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#include <wincodec.h>
-#ifdef _MSC_VER
-#pragma comment(lib,"windowscodecs.lib")
-#pragma comment(lib,"ole32.lib")
-#pragma comment(lib,"uuid.lib")
-#endif
-#endif
 namespace GBEngine {
 namespace {
 struct PdfImageStream {unsigned page,offset,length;};
 struct CropFragment {unsigned page,left,top,right,bottom;};
 struct ScannedPage {const char* id;unsigned number,first,count;};
 #include "journal_image_recipe.inc"
-struct Raster {unsigned width,height;Bytes pixels;};
 std::string filename(const ScannedPage& page){return std::string(page.id)+"-"+(page.number<10?"0":"")+std::to_string(page.number)+".png";}
 std::pair<unsigned,unsigned> dimensions(const ScannedPage& page) {
     unsigned width=0,height=0;
@@ -35,6 +24,7 @@ Bytes read(const std::filesystem::path& path) {
     if(!std::filesystem::is_regular_file(path)||std::filesystem::is_symlink(path)||std::filesystem::file_size(path)>20*1024*1024)throw DecodeError("Journal source must be an ordinary supported PDF file");
     std::ifstream f(path,std::ios::binary);if(!f)throw DecodeError("Cannot open Journal source");return {std::istreambuf_iterator<char>(f),{}};
 }
+struct Raster {unsigned width,height;Bytes pixels;};
 void write(const std::filesystem::path& path,std::span<const std::uint8_t> bytes) {
     std::ofstream f(path,std::ios::binary);f.write(reinterpret_cast<const char*>(bytes.data()),static_cast<std::streamsize>(bytes.size()));if(!f)throw DecodeError("Cannot write extracted Journal content");
 }
@@ -72,28 +62,31 @@ std::string catalog() {
     out<<'\n';return out.str();
 }
 std::string profile(){return std::string(pdf_hash)+"\t"+std::string(recipe_hash)+"\n";}
-#ifdef _WIN32
-void com_check(HRESULT result){if(FAILED(result))throw DecodeError("Windows JPEG decoder could not extract the Journal image");}
-template<class T>struct Com {
-    T* value=nullptr;~Com(){if(value)value->Release();}T** out(){return &value;}T* operator->(){return value;}
-};
-struct Apartment {
-    HRESULT result=CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);
-    Apartment(){if(result!=RPC_E_CHANGED_MODE)com_check(result);}
-    ~Apartment(){if(SUCCEEDED(result))CoUninitialize();}
-};
-Raster decode(IWICImagingFactory* factory,std::span<const std::uint8_t> jpeg) {
-    Com<IWICStream> stream;com_check(factory->CreateStream(stream.out()));
-    com_check(stream->InitializeFromMemory(const_cast<BYTE*>(jpeg.data()),static_cast<DWORD>(jpeg.size())));
-    Com<IWICBitmapDecoder> decoder;com_check(factory->CreateDecoderFromStream(stream.value,nullptr,WICDecodeMetadataCacheOnLoad,decoder.out()));
-    Com<IWICBitmapFrameDecode> frame;com_check(decoder->GetFrame(0,frame.out()));
-    UINT width=0,height=0;com_check(frame->GetSize(&width,&height));if(width!=1328||height!=1003)throw DecodeError("Unexpected Journal scan size");
-    Com<IWICFormatConverter> converter;com_check(factory->CreateFormatConverter(converter.out()));
-    com_check(converter->Initialize(frame.value,GUID_WICPixelFormat24bppRGB,WICBitmapDitherTypeNone,nullptr,0,WICBitmapPaletteTypeCustom));
-    Raster result{width,height,Bytes(static_cast<std::size_t>(width)*height*3)};
-    com_check(converter->CopyPixels(nullptr,width*3,static_cast<UINT>(result.pixels.size()),result.pixels.data()));return result;
+Raster decode(std::span<const std::uint8_t> jpeg) {
+    const std::unique_ptr<SDL_IOStream,decltype(&SDL_CloseIO)> stream(
+        SDL_IOFromConstMem(jpeg.data(),jpeg.size()),SDL_CloseIO);
+    if(!stream)throw DecodeError(std::string("Cannot open Journal JPEG stream: ")+SDL_GetError());
+
+    std::unique_ptr<SDL_Surface,decltype(&SDL_DestroySurface)> image(IMG_LoadJPG_IO(stream.get()),SDL_DestroySurface);
+    if(!image)throw DecodeError(std::string("Cannot decode Journal JPEG: ")+SDL_GetError());
+    constexpr int width=1328,height=1003;
+    if(image->w!=width || image->h!=height)throw DecodeError("Unexpected Journal scan size");
+    if(image->format!=SDL_PIXELFORMAT_RGB24) {
+        image.reset(SDL_ConvertSurface(image.get(),SDL_PIXELFORMAT_RGB24));
+        if(!image)throw DecodeError(std::string("Cannot convert Journal image to RGB: ")+SDL_GetError());
+    }
+
+    constexpr std::size_t row_bytes=width*3,row_count=height;
+    Raster result{width,height,Bytes(row_bytes*row_count)};
+    if(!SDL_LockSurface(image.get()))throw DecodeError(std::string("Cannot read Journal image pixels: ")+SDL_GetError());
+    const auto* pixels=static_cast<const std::uint8_t*>(image->pixels);
+    const auto pitch=static_cast<std::size_t>(image->pitch);
+    for(std::size_t row=0;row<row_count;++row) {
+        std::copy_n(pixels+row*pitch,row_bytes,result.pixels.data()+row*row_bytes);
+    }
+    SDL_UnlockSurface(image.get());
+    return result;
 }
-#endif
 }
 bool journal_images_ready(const std::filesystem::path& root) {
     try {
@@ -118,22 +111,17 @@ bool prepare_journal_images(const std::filesystem::path& pdf,const std::filesyst
     const auto data=read(pdf);const auto actual_hash=sha256(data);
     if(progress)progress("Journal PDF SHA256 "+actual_hash+" (expected "+std::string(pdf_hash)+")");
     if(actual_hash!=pdf_hash)throw DecodeError("This Journal PDF does not match the supported GOG scan; no content was changed");
-#ifndef _WIN32
-    (void)progress;throw DecodeError("Journal image extraction requires the Windows JPEG decoder");
-#else
     const auto root=std::filesystem::absolute(destination).lexically_normal(),parent=root.parent_path();
     if(std::filesystem::is_symlink(root)||root==parent)throw DecodeError("Journal output must be an ordinary install directory");
     std::filesystem::create_directories(parent);const auto suffix=std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
     const auto stage=parent/(".Journal-images-stage-"+suffix),backup=parent/(".Journal-images-backup-"+suffix);
     if(!std::filesystem::create_directory(stage))throw DecodeError("Cannot stage Journal extraction");
-    Apartment apartment;Com<IWICImagingFactory> factory;
-    com_check(CoCreateInstance(CLSID_WICImagingFactory,nullptr,CLSCTX_INPROC_SERVER,IID_IWICImagingFactory,reinterpret_cast<void**>(factory.out())));
     std::map<unsigned,Raster> decoded;
     const auto source=[&](unsigned number)->const Raster& {
         auto found=decoded.find(number);if(found!=decoded.end())return found->second;
         const auto stream=std::find_if(std::begin(streams),std::end(streams),[&](const auto& s){return s.page==number;});
         if(stream==std::end(streams)||stream->offset>data.size()||stream->length>data.size()-stream->offset)throw DecodeError("Invalid precomputed PDF image range");
-        return decoded.emplace(number,decode(factory.value,std::span(data).subspan(stream->offset,stream->length))).first->second;
+        return decoded.emplace(number,decode(std::span(data).subspan(stream->offset,stream->length))).first->second;
     };
     for(const auto& page:pages) {
         if(progress)progress(std::string("Extracting ")+filename(page));
@@ -153,6 +141,5 @@ bool prepare_journal_images(const std::filesystem::path& pdf,const std::filesyst
     try{std::filesystem::rename(stage,root);}catch(...){if(existing)std::filesystem::rename(backup,root);throw;}
     if(progress)progress("Journal ready: 99 entries, "+std::to_string(std::size(pages))+" image pages; no OCR or transcribed text");
     return true;
-#endif
 }
 }

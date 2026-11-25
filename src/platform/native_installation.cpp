@@ -270,6 +270,16 @@ std::optional<fs::path> gog_poolrad_directory() {
     if(type==REG_EXPAND_SZ){std::wstring expanded(32768,L'\0');const auto n=ExpandEnvironmentStringsW(value.c_str(),expanded.data(),static_cast<DWORD>(expanded.size()));if(!n || n>expanded.size())return {};expanded.resize(n-1);value=std::move(expanded);}
     if(value.empty())return {};
     return fs::path(value)/"POOLRAD";
+#elif defined(__linux__)
+    const auto beside_executable=executable_directory()/"GOG"/"POOLRAD";
+    if(NativeInstallation::game_ready(beside_executable))return beside_executable;
+
+    std::error_code error;
+    const auto working_directory=fs::current_path(error);
+    if(error)return {};
+    const auto from_working_directory=working_directory/"GOG"/"POOLRAD";
+    if(from_working_directory!=beside_executable && NativeInstallation::game_ready(from_working_directory))return from_working_directory;
+    return {};
 #else
     return {};
 #endif

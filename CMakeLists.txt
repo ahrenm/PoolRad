@@ -13,6 +13,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND CMAKE_CXX_FLAGS_RELEASE STREQUA
 endif()
 
 include(cmake/SDL3.cmake)
+include(cmake/SDL3Image.cmake)
 
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/config/source_sets.json" source_manifest)
 foreach(block core tools modes application bootstrap)
@@ -37,8 +38,9 @@ endfunction()
 
 add_library(gbengine_core STATIC ${poolrad_core_sources})
 target_include_directories(gbengine_core PUBLIC include PRIVATE third_party)
+target_link_libraries(gbengine_core PRIVATE SDL3_image::SDL3_image-static SDL3::SDL3-shared)
 if(WIN32)
-    target_link_libraries(gbengine_core PUBLIC advapi32 windowscodecs ole32 uuid)
+    target_link_libraries(gbengine_core PRIVATE advapi32)
 endif()
 add_library(gbengine_tools STATIC ${poolrad_tools_sources})
 target_link_libraries(gbengine_tools PUBLIC gbengine_core)
@@ -66,6 +68,8 @@ install(TARGETS poolrad RUNTIME DESTINATION .)
 install(FILES README.md DESTINATION .)
 install(FILES third_party/tomlplusplus/LICENSE DESTINATION licenses RENAME tomlplusplus-LICENSE)
 install(FILES "${POOLRAD_SDL3_LICENSE}" DESTINATION licenses RENAME SDL3-LICENSE.txt)
+install(FILES "${POOLRAD_SDL3_IMAGE_LICENSE}" DESTINATION licenses RENAME SDL3_image-LICENSE.txt)
+install(FILES third_party/stb-image-LICENSE.txt DESTINATION licenses)
 if(WIN32)
     add_custom_command(TARGET poolrad POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:SDL3::SDL3-shared> $<TARGET_FILE_DIR:poolrad>)

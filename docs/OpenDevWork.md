@@ -106,8 +106,8 @@ Do not reopen those whole features without a new failing case. For example,
   validated with Windows x64/MinGW. The pinned-SDL source build now also passes
   a full MSVC Release application build, install and selected setup/startup checks.
   A complete MSVC gameplay run and clean-machine runtime deployment remain open.
-  Other hosts need setup/input/storage/audio validation and a deliberate Journal
-  extraction approach; Windows WIC and GOG registry discovery are Windows-only.
+  Other hosts need setup/input/storage/audio validation. Journal JPEG extraction
+  uses the shared SDL3_image backend. GOG registry discovery is Windows-only.
 - [ ] **Verify dependency/release combinations.** Establish supported SDL SDK
   versions and compiler/runtime combinations, including fresh-machine installs,
   paths with spaces/Unicode, runtime DLL redistribution and source-only rebuilds.
